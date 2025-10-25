@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Six-Month Notes Calendar</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='88'>📆</text></svg>">
+  <style>
+    :root {
+      --bg: #f9fafb; --panel: #ffffff; --muted: #6b7280; --text: #111827; --accent: #2563eb; --danger: #ef4444; --ok: #10b981; --shadow: 0 4px 12px rgba(0,0,0,.08); --radius: 8px; --border: #eee;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .app { max-width: 1400px; margin: 12px auto 24px; padding: 8px 12px; }
+    header.appbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--panel); border:1px solid #e5e7eb; border-radius:var(--radius); box-shadow:var(--shadow); }
+    .title { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:baseline; }
+    .title h1 { margin:0; font-size:18px; }
+    .title small { color:var(--muted); }
+    .controls { display:flex; gap:6px; flex-wrap:wrap; }
+    button, .btn { appearance:none; border:1px solid #d1d5db; background:#f3f4f6; color:var(--text); padding:3px 10px; border-radius:5px; cursor:pointer; transition:transform .06s ease, background .2s ease, border-color .2s ease; font-weight:600; font-size:13px; }
+    button:hover { filter: contrast(1.1); }
+    button:active { transform: translateY(1px); }
+    .btn-accent { background: var(--accent); color:#fff; border-color: var(--accent); }
+
+    .layout { display:grid; grid-template-columns: 1fr 340px; gap:12px; align-items:start; }
+    @media (max-width:1100px) { .layout { grid-template-columns:1fr; } }
+
+    .calendar-grid { margin-top:8px; display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+    @media (max-width:1050px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width:700px) { .calendar-grid { grid-template-columns: 1fr; } }
+
+    .month { background:var(--panel); border:1px solid #e5e7eb; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+    .month-header { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--border); background:#f8fafc; }
+    .month-header h2 { margin:0; font-size:15px; font-weight:700; }
+    .month-header .note-count { color:var(--muted); font-size:12px; }
+
+    .weekdays, .days { display:grid; grid-template-columns: repeat(7, 1fr); padding:0 2px; }
+    .weekdays div { text-align:center; font-size:11px; padding:4px 0; color:var(--muted); border-bottom:1px solid var(--border); }
+
+    .day { position:relative; min-height:40px; padding:3px 4px 14px 4px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); cursor:pointer; background:#fff; }
+    .day:nth-child(7n+1) { border-right:none; }
+    .day:nth-child(7n+1), .day:nth-child(7n) { background:#fafafa; } /* Saturday and Sunday */
+    .day.out { opacity:.35; }
+    .day:hover { outline:2px solid rgba(37,99,235,.25); z-index:1; }
+
+    .date-label { font-size:11px; color:var(--muted); }
+    .note-dot { position:absolute; right:3px; bottom:3px; width:8px; height:8px; border-radius:8px; background:var(--accent); box-shadow:0 0 0 2px rgba(0,0,0,.04) inset; }
+    .note-preview { font-size:8px; color:var(--text); line-height:1.0; max-height:16px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+    .sidebar { padding-top:8px; }
+    .upcoming { background:var(--panel); border:1px solid #e5e7eb; border-radius:var(--radius); box-shadow:var(--shadow); }
+    .upcoming header { padding:10px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .upcoming header h3 { margin:0; font-size:14px; }
+    .event-item { cursor:pointer; display:grid; grid-template-columns:14px 1fr; gap:8px; align-items:start; padding:10px 12px; border-bottom:1px solid #f3f4f6; }
+    .event-item:last-child { border-bottom:none; }
+    .swatch { width:14px; height:14px; border-radius:4px; border:1px solid #e5e7eb; margin-top:2px; }
+    .event-title { font-size:13px; margin:0; }
+    .event-meta { color:var(--muted); font-size:12px; }
+    .empty { color:var(--muted); padding:12px; font-size:13px; }
+
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+    .modal { width:min(560px,96vw); background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:var(--shadow); overflow:hidden; }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border); background:#f8fafc; }
+    .modal h3 { margin:0; font-size:15px; }
+    .modal .content { padding:12px; display:grid; gap:8px; }
+    .modal textarea { width:100%; min-height:110px; resize:vertical; padding:8px; font:inherit; color:var(--text); }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row label { font-size:12px; color:var(--muted); }
+    .modal footer { display:flex; justify-content:space-between; gap:8px; padding:10px; background:#f8fafc; border-top:1px solid var(--border); }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; background:#fafafa; padding:2px 6px; font-size:12px; color:var(--muted); }
+    .hidden { display:none !important; }
+    [x-cloak] { display: none !important; }
+    .color-options { display:flex; gap:6px; flex-wrap:wrap; }
+    .color-swatch { width:20px; height:20px; border-radius:50%; cursor:pointer; border:3px solid transparent; }
+    .color-swatch.selected { border-color:#111; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+<div class="app" x-data="app()" x-init="init()" @keydown.window.escape="closeModal()" @keydown.window.ctrl.enter="saveNote()" @keydown.window.meta.enter="saveNote()">
+  <header class="appbar">
+    <div class="title">
+      <h1>📆 Six-Month Notes Calendar</h1>
+      <small x-text="rangeLabel"></small>
+    </div>
+    <div class="controls">
+      <button class="btn" @click="exportNotes()">Export Notes</button>
+      <input type="file" accept="application/json" class="hidden" x-ref="importFile" @change="importNotes($event)">
+      <button class="btn" @click="$refs.importFile.click()">Import Notes</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="calendar-card">
+      <section class="calendar-grid" aria-live="polite">
+        <template x-for="m in months" :key="m.y + '-' + m.m">
+          <article class="month">
+            <div class="month-header">
+              <h2 x-text="monthLabel(m.y, m.m)"></h2>
+              <div class="note-count" x-text="monthNoteCountLabel(m.y, m.m)"></div>
+            </div>
+            <div class="weekdays">
+              <template x-for="w in weekdays" :key="w">
+                <div x-text="w"></div>
+              </template>
+            </div>
+            <div class="days">
+              <template x-for="d in buildMonthMatrix(m.y, m.m)" :key="toKey(d)">
+                <div class="day" :class="{ 'out': d.getMonth() !== m.m }" :data-key="toKey(d)" @click="openModal(toKey(d))" :title="notes[toKey(d)]?.text || ''" :style="(+startOfDay(d)===+today) ? 'outline:2px solid rgba(16,185,129,.35)' : ''">
+                  <div class="date-label" x-text="d.getDate()"></div>
+                  <template x-if="notes[toKey(d)] && notes[toKey(d)].text">
+                    <div>
+                      <div class="note-preview" x-text="notes[toKey(d)].text"></div>
+                      <span class="note-dot" :style="'background:' + (notes[toKey(d)].color || '#2563eb')"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </article>
+        </template>
+      </section>
+    </section>
+
+    <aside class="sidebar">
+      <section class="upcoming">
+        <header>
+          <h3>Upcoming (next 180 days)</h3>
+          <small class="event-meta" x-text="upcoming.length ? (upcoming.length + ' item' + (upcoming.length===1 ? '' : 's')) : ''"></small>
+        </header>
+        <div class="list">
+          <template x-if="!upcoming.length"><div class="empty">No upcoming notes.</div></template>
+          <template x-for="it in upcoming" :key="it.key">
+            <div class="event-item" @click="openModal(it.key)">
+              <div class="swatch" :style="'background:' + it.color"></div>
+              <div>
+                <p class="event-title" x-text="it.text"></p>
+                <div class="event-meta" x-text="relDays(today, it.date) + ' · ' + it.date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" x-cloak x-show="showModal" x-transition.opacity @click.self="closeModal()">
+    <div class="modal" role="document">
+      <header>
+        <h3 x-text="modalTitle"></h3>
+        <button @click="closeModal()">✕</button>
+      </header>
+      <div class="content">
+        <textarea x-model.trim="tempText" placeholder="Write a note for this day..."></textarea>
+        <div class="row">
+          <label>Color:</label>
+          <div class="color-options">
+            <template x-for="c in COLORS" :key="c">
+              <div class="color-swatch" :class="{ 'selected': selectedColor === c }" :style="'background:'+c" @click="selectedColor = c"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <div class="left">
+          <button title="Delete note" style="background:#fee2e2;border:1px solid #fecaca;" @click="deleteNote()">Delete</button>
+          <span class="kbd">Ctrl + Enter to Save</span>
+        </div>
+        <div class="right">
+          <button @click="closeModal()">Cancel</button>
+          <button class="btn-accent" @click="saveNote()">Save</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+  function app() {
+    const MS_DAY = 86400000;
+    const STORAGE_KEY = 'sixMonthNotes.v2';
+    return {
+      // state
+      today: startOfDay(new Date()),
+      notes: loadNotes(),
+      months: [],
+      weekdays: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      rangeLabel: '',
+      modalTitle: '',
+      showModal: false,
+      activeKey: null,
+      tempText: '',
+      selectedColor: '#2563eb',
+      COLORS: ['#2563eb', '#ef4444', '#33ff00', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'],
+
+      init() {
+        this.months = this.monthSpan(this.today);
+        const first = new Date(this.months[0].y, this.months[0].m, 1);
+        const last = new Date(this.months[5].y, this.months[5].m + 1, 0);
+        this.rangeLabel = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + ' – ' + last.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        setInterval(() => this.today = startOfDay(new Date()), 1000); // update today every second
+      },
+
+      // computed
+      get upcoming() {
+        const items = [];
+        const now = this.today;
+        for (const [k, v] of Object.entries(this.notes)) {
+          if (!v || !v.text || !v.text.trim()) continue;
+          const d = fromKey(k);
+          const diff = (startOfDay(d) - now) / MS_DAY;
+          if (diff >= 0 && diff <= 180) {
+            items.push({ date: d, key: k, text: v.text.trim(), color: v.color || this.COLORS[0], days: Math.round(diff) });
+          }
+        }
+        items.sort((a,b) => a.date - b.date);
+        return items;
+      },
+
+      // actions
+      openModal(key) {
+        this.activeKey = key;
+        const d = fromKey(key);
+        this.modalTitle = 'Note for ' + d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+        const current = this.notes[key];
+        this.tempText = (current && current.text) ? current.text : '';
+        this.selectedColor = (current && current.color) ? current.color : this.COLORS[0];
+        this.showModal = true;
+        this.$nextTick(() => {
+          const ta = document.querySelector('.modal textarea'); if (ta) ta.focus();
+        });
+      },
+      closeModal() { this.showModal = false; this.activeKey = null; },
+      saveNote() {
+        if (!this.showModal || !this.activeKey) return;
+        const text = (this.tempText || '').trim();
+        const color = this.selectedColor || this.COLORS[0];
+        if (text) this.notes[this.activeKey] = { text, color }; else delete this.notes[this.activeKey];
+        saveNotes(this.notes);
+        this.showModal = false; this.activeKey = null;
+      },
+      deleteNote() {
+        if (!this.activeKey) return;
+        delete this.notes[this.activeKey];
+        saveNotes(this.notes);
+        this.closeModal();
+      },
+
+      exportNotes() {
+        const sorted = sortKeys(this.notes);
+        const blob = new Blob([JSON.stringify(sorted, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+        a.download = `six-month-notes-${stamp}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      },
+      importNotes(event) {
+        const file = event.target.files && event.target.files[0]; if (!file) return;
+        file.text().then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (typeof data === 'object' && data) {
+              const normalized = {};
+              for (const [k, v] of Object.entries(data)) {
+                if (v && typeof v.text === 'string') normalized[k] = { text: v.text.trim(), color: v.color || this.COLORS[0] };
+              }
+              this.notes = normalized; saveNotes(this.notes);
+            } else { alert('Invalid file format.'); }
+          } catch (e) { alert('Failed to import: ' + e.message); }
+          finally { event.target.value = ''; }
+        });
+      },
+
+      // helpers for UI
+      monthSpan(fromDate) {
+        const arr = [];
+        for (let i = 0; i < 6; i++) { const d = new Date(fromDate.getFullYear(), fromDate.getMonth() + i, 1); arr.push({ y: d.getFullYear(), m: d.getMonth() }); }
+        return arr;
+      },
+      monthLabel(y, m) { return new Date(y, m, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' }); },
+      monthNoteCountLabel(y, m) {
+        const prefix = `${y}-${String(m+1).padStart(2,'0')}-`;
+        const count = Object.keys(this.notes).filter(k => k.startsWith(prefix) && this.notes[k]?.text?.trim()).length;
+        return count ? `${count} note${count!==1?'s':''}` : '';
+      },
+
+      // date utils inside alpine scope for templates
+      toKey, fromKey, startOfDay, buildMonthMatrix, relDays,
+    };
+
+    // Pure helpers (outside state)
+    function toKey(d) { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+    function fromKey(key) { const [y,m,d] = key.split('-').map(Number); return new Date(y, m-1, d); }
+    function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function weekdayMon0(date) { const wd = date.getDay(); return (wd + 6) % 7; }
+    function buildMonthMatrix(year, month) {
+      const first = new Date(year, month, 1);
+      const firstCell = new Date(first);
+      const shift = weekdayMon0(first);
+      firstCell.setDate(first.getDate() - shift); // negative value is OK
+      const cells = [];
+      for (let i = 0; i < 42; i++) { const d = new Date(firstCell); d.setDate(firstCell.getDate() + i); cells.push(d); }
+      return cells;
+    }
+    function relDays(from, to) {
+      const a = startOfDay(from).getTime(); const b = startOfDay(to).getTime(); const diff = Math.round((b-a)/MS_DAY);
+      if (diff === 0) return 'today'; if (diff > 0) return `in ${diff} day${diff === 1 ? '' : 's'}`; const n = Math.abs(diff); return `${n} day${n === 1 ? '' : 's'} ago`;
+    }
+    function sortKeys(obj) { return Object.fromEntries(Object.entries(obj).sort()); }
+    function loadNotes() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } }
+    function saveNotes(notes) { localStorage.setItem(STORAGE_KEY, JSON.stringify(sortKeys(notes))); }
+  }
+</script>
+</body>
+</html>
