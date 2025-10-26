@@ -107,7 +107,7 @@
             </div>
             <div class="days">
               <template x-for="d in buildMonthMatrix(m.y, m.m)" :key="toKey(d)">
-                <div class="day" :class="{ 'out': d.getMonth() !== m.m }" :data-key="toKey(d)" @click="openModal(toKey(d))" :title="notes[toKey(d)]?.text || ''" :style="(+startOfDay(d)===+today) ? 'outline:2px solid rgba(16,185,129,.35)' : ''">
+                <div class="day" :class="{ 'out': d.getMonth() !== m.m }" :data-key="toKey(d)" @click="openModal(toKey(d))" :title="notes[toKey(d)]?.text || ''" :style="(+startOfDay(d)===+today) ? 'outline:2px solid rgba(16,185,129,.35); z-index:10;' : ''">
                   <div class="date-label" x-text="d.getDate()"></div>
                   <template x-if="notes[toKey(d)] && notes[toKey(d)].text">
                     <div>
