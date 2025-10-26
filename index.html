@@ -78,7 +78,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-<div class="app" x-data="app()" x-init="init()" @keydown.window.escape="closeModal()" @keydown.window.ctrl.enter="saveNote()" @keydown.window.meta.enter="saveNote()">
+<div class="app" x-data="App" @keydown.window.escape="closeModal()" @keydown.window.ctrl.enter="saveNote()" @keydown.window.meta.enter="saveNote()">
   <header class="appbar">
     <div class="title">
       <h1>📆 Six-Month Notes Calendar</h1>
@@ -178,7 +178,7 @@
 </div>
 
 <script>
-  function app() {
+  function App() {
     const MS_DAY = 86400000;
     const STORAGE_KEY = 'sixMonthNotes.v2';
     return {
