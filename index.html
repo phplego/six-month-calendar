@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -112,7 +112,7 @@
                   <template x-if="notes[toKey(d)] && notes[toKey(d)].text">
                     <div>
                       <div class="note-preview" x-text="notes[toKey(d)].text"></div>
-                      <span class="note-dot" :style="'background:' + (notes[toKey(d)].color || '#2563eb')"></span>
+                      <span class="note-dot" :style="'background:' + (notes[toKey(d)].color || '#000')"></span>
                     </div>
                   </template>
                 </div>
@@ -206,11 +206,10 @@
       // computed
       get upcoming() {
         const items = [];
-        const now = this.today;
         for (const [k, v] of Object.entries(this.notes)) {
           if (!v || !v.text || !v.text.trim()) continue;
           const d = fromKey(k);
-          const diff = (startOfDay(d) - now) / MS_DAY;
+          const diff = (startOfDay(d) - this.today) / MS_DAY;
           if (diff >= 0 && diff <= 180) {
             items.push({ date: d, key: k, text: v.text.trim(), color: v.color || this.COLORS[0], days: Math.round(diff) });
           }
@@ -305,8 +304,10 @@
       return cells;
     }
     function relDays(from, to) {
-      const a = startOfDay(from).getTime(); const b = startOfDay(to).getTime(); const diff = Math.round((b-a)/MS_DAY);
-      if (diff === 0) return 'today'; if (diff > 0) return `in ${diff} day${diff === 1 ? '' : 's'}`; const n = Math.abs(diff); return `${n} day${n === 1 ? '' : 's'} ago`;
+      const diff = Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / MS_DAY);
+      if (diff === 0) return 'today';
+      if (diff < 0)return `${-diff} day${diff === -1 ? '' : 's'} ago`;
+      return `in ${diff} day${diff === 1 ? '' : 's'}`;
     }
     function sortKeys(obj) { return Object.fromEntries(Object.entries(obj).sort()); }
     function loadNotes() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } }
