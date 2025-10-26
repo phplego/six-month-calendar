@@ -200,7 +200,11 @@
         const first = new Date(this.months[0].y, this.months[0].m, 1);
         const last = new Date(this.months[5].y, this.months[5].m + 1, 0);
         this.rangeLabel = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + ' – ' + last.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-        setInterval(() => this.today = startOfDay(new Date()), 1000); // update today every second
+        setInterval(() => {
+          if (this.today.getDay() !== new Date().getDay()) { // only update if day changed
+            this.today = startOfDay(new Date())
+          }
+        }, 1000); // check every second
       },
 
       // computed
