@@ -40,7 +40,7 @@
 
     .day { position:relative; min-height:40px; padding:3px 4px 14px 4px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); cursor:pointer; background:#fff; }
     .day:nth-child(7n+1) { border-right:none; }
-    .day:nth-child(7n+1), .day:nth-child(7n) { background:#fafafa; } /* Saturday and Sunday */
+    .day.weekend { background:#fafafa; } /* Saturday and Sunday */
     .day.out { opacity:.35; }
     .day:hover { outline:2px solid rgba(37,99,235,.25); z-index:1; }
 
@@ -107,7 +107,9 @@
             </div>
             <div class="days">
               <template x-for="d in buildMonthMatrix(m.y, m.m)" :key="toKey(d)">
-                <div class="day" :class="{ 'out': d.getMonth() !== m.m }" :data-key="toKey(d)" @click="openModal(toKey(d))" :title="notes[toKey(d)]?.text || ''" :style="(+startOfDay(d)===+today) ? 'outline:2px solid rgba(16,185,129,.35); z-index:10;' : ''">
+                <div class="day" :class="{ 'out': d.getMonth() !== m.m, weekend: isWeekend(d) }" :data-key="toKey(d)"
+                     @click="openModal(toKey(d))" :title="notes[toKey(d)]?.text || ''"
+                     :style="(+startOfDay(d)===+today) ? 'outline:2px solid rgba(16,185,129,.35); z-index:10;' : ''">
                   <div class="date-label" x-text="d.getDate()"></div>
                   <template x-if="notes[toKey(d)] && notes[toKey(d)].text">
                     <div>
@@ -288,6 +290,7 @@
         const count = Object.keys(this.notes).filter(k => k.startsWith(prefix) && this.notes[k]?.text?.trim()).length;
         return count ? `${count} note${count!==1?'s':''}` : '';
       },
+      isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; },
 
       // date utils inside alpine scope for templates
       toKey, fromKey, startOfDay, buildMonthMatrix, relDays,
